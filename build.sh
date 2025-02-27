@@ -8,7 +8,7 @@ else
 fi
 
 echo "Compiling ./src/snake.c"
-clang ./src/snake.c -o ./build/snake -Wall -Wpedantic -Wextra
+clang ./src/snake.c -o ./build/snake -l curses -Wall -Wpedantic -Wextra
 
 echo "Running ./build/snake"
 ./build/snake

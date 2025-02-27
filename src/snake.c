@@ -1,41 +1,19 @@
-#include <stdio.h>
-#include <time.h>
 #include <assert.h>
+#include <curses.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define BOARD_HEIGHT (5U & 0xFF) /* uint8_t */
-#define BOARD_WIDTH (5U & 0xFF)  /* uint8_t */
+#define BOARD_WIDTH (5U & 0xFF) /* uint8_t */
 
-// defined from top left as (0,0)
-typedef struct
-{
-    uint8_t x;
-    uint8_t y;
+/* ---- Position ---- */
+
+typedef struct {
+    uint8_t x; // horizontal. 0 is left
+    uint8_t y; // vertical. 0 is top
 } PosT;
-
-typedef enum
-{
-    UP,
-    RIGHT,
-    DOWN,
-    LEFT,
-} DirectionE;
-
-typedef struct
-{
-    PosT body[BOARD_HEIGHT * BOARD_WIDTH]; // starts from tail.
-    uint16_t length;
-    DirectionE direction; // current direction of snake
-} SnakeT;
-
-typedef enum
-{
-    SNAKE = 'O',
-    FOOD = 'X',
-    EMPTY = ' ',
-} BoardE;
 
 static bool IsPosEqual(const PosT pos1, const PosT pos2)
 {
@@ -45,13 +23,18 @@ static bool IsPosEqual(const PosT pos1, const PosT pos2)
         return false;
 }
 
-/* Takes current pos and direction.
-    Returns the next position. */
+typedef enum {
+    UP,
+    RIGHT,
+    DOWN,
+    LEFT,
+    INVALID,
+} DirectionE;
+
 static PosT GetNextPos(const PosT current_pos, const DirectionE direction)
 {
     PosT next_pos = current_pos;
-    switch (direction)
-    {
+    switch (direction) {
     case UP:
         next_pos.y = (current_pos.y + BOARD_HEIGHT - 1) % BOARD_HEIGHT;
         break;
@@ -71,20 +54,36 @@ static PosT GetNextPos(const PosT current_pos, const DirectionE direction)
     return next_pos;
 }
 
-static PosT GetSnakeHeadPos(const SnakeT *const Snake)
+/* ---- Snake ---- */
+
+typedef struct {
+    PosT body[BOARD_HEIGHT * BOARD_WIDTH]; // starts from tail.
+    uint16_t length;
+    DirectionE direction; // current direction of snake
+} SnakeT;
+
+static PosT GetSnakeHeadPos(const SnakeT* const Snake)
 {
     return Snake->body[Snake->length - 1];
 }
 
-static PosT GetSnakeTailPos(const SnakeT *const Snake)
+static PosT GetSnakeTailPos(const SnakeT* const Snake)
 {
     return Snake->body[0];
 }
 
-// this function looks dumb now. however it will be useful to update the output char by char.
-static void SetBoardAndUpdate(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], const PosT pos, const BoardE state_to_write)
+/* ---- Board ---- */
+
+typedef enum {
+    SNAKE = 'O',
+    FOOD = 'X',
+    EMPTY = ' ',
+} BoardE;
+
+static void SetBoardAndUpdateDisplayBuffer(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], const PosT pos, const BoardE state_to_write)
 {
     board[pos.y][pos.x] = state_to_write;
+    mvaddch(pos.y, pos.x, state_to_write);
 }
 
 static BoardE GetBoardEnum(const BoardE board[BOARD_HEIGHT][BOARD_WIDTH], const PosT pos)
@@ -92,78 +91,52 @@ static BoardE GetBoardEnum(const BoardE board[BOARD_HEIGHT][BOARD_WIDTH], const 
     return board[pos.y][pos.x];
 }
 
-// intended for initialization.
+/* ---- Init ---- */
+
 static void ResetBoard(BoardE board[BOARD_HEIGHT][BOARD_WIDTH])
 {
     for (size_t x = 0; x < BOARD_WIDTH; x++)
         for (size_t y = 0; y < BOARD_HEIGHT; y++)
-            SetBoardAndUpdate(board, (PosT){.x = x, .y = y}, EMPTY);
+            SetBoardAndUpdateDisplayBuffer(board, (PosT) { .x = x, .y = y }, EMPTY);
 }
 
-// intended for initialization
-static void DrawSnake(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], const SnakeT *const Snake)
+static void DrawSnake(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], const SnakeT* const Snake)
 {
-    for (size_t i = 0; i < Snake->length; i++)
-    {
+    for (size_t i = 0; i < Snake->length; i++) {
         const PosT pos_snake = Snake->body[i];
-        SetBoardAndUpdate(board, pos_snake, SNAKE);
+        SetBoardAndUpdateDisplayBuffer(board, pos_snake, SNAKE);
     }
 }
 
 static void DrawFood(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], const PosT pos)
 {
-    SetBoardAndUpdate(board, pos, FOOD);
+    SetBoardAndUpdateDisplayBuffer(board, pos, FOOD);
 }
 
-static void Initialize(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT *const Snake)
+static void InitializeGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
 {
     ResetBoard(board);
-    *Snake = (SnakeT){
-        .body = {(PosT){
+    *Snake = (SnakeT) {
+        .body = { (PosT) {
             .x = BOARD_WIDTH / 2,
             .y = BOARD_HEIGHT / 2,
-        }},
+        } },
         .length = 1,
         .direction = RIGHT,
     };
     DrawSnake(board, Snake);
-    DrawFood(board, (PosT){
-                        .x = 0,
+    DrawFood(board, (PosT) {
+                        .x = BOARD_WIDTH - 1,
                         .y = Snake->body[0].y,
                     });
 }
 
-static void GameOver(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT *const Snake)
+/* ---- Game ---- */
+
+static void MoveSnakeWithoutGrow(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake, const PosT PosNewHead)
 {
-    Initialize(board, Snake);
-}
-
-/* Takes snake & the position of the food it eats.
-    Grows the snake.
-    Updates the board.
-    Returns 1 if game is won. Else returns 0. */
-static bool MoveSnakeWithGrowAndPlaceNewFood(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT *const Snake, const PosT PosFood)
-{
-    Snake->body[Snake->length++] = PosFood;
-    SetBoardAndUpdate(board, PosFood, SNAKE);
-
-    { // TODO: CHANGE THIS CODE BLOCK TO ACTUAL FOOD PLACEMENT
-        const PosT next_pos = GetNextPos(GetSnakeHeadPos(Snake), Snake->direction);
-        if (GetBoardEnum(board, next_pos) != SNAKE)
-            SetBoardAndUpdate(board, next_pos, FOOD);
-    }
-
-    // check game won
-    if (Snake->length == sizeof(Snake->body) / sizeof(Snake->body[0]))
-        return true;
-    else
-        return false;
-}
-
-static void MoveSnakeWithoutGrow(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT *const Snake, const PosT PosNewHead)
-{
-    SetBoardAndUpdate(board, GetSnakeTailPos(Snake), EMPTY);
-    SetBoardAndUpdate(board, PosNewHead, SNAKE);
+    SetBoardAndUpdateDisplayBuffer(board, GetSnakeTailPos(Snake), EMPTY);
+    SetBoardAndUpdateDisplayBuffer(board, PosNewHead, SNAKE);
 
     // update snake body positions
     for (size_t i = 0; i < Snake->length - 1; i++)
@@ -171,11 +144,42 @@ static void MoveSnakeWithoutGrow(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT
     Snake->body[Snake->length - 1] = PosNewHead;
 }
 
-static void MoveSnake(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT *const Snake, const DirectionE requested_direction)
+static void MoveSnakeWithGrow(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake, const PosT PosFood)
 {
-    // update direction
-    switch (requested_direction)
-    {
+    Snake->body[Snake->length++] = PosFood;
+    SetBoardAndUpdateDisplayBuffer(board, PosFood, SNAKE);
+}
+
+static void PlaceNewFood(BoardE board[BOARD_HEIGHT][BOARD_WIDTH])
+{
+    PosT possble_positions[BOARD_HEIGHT * BOARD_WIDTH];
+    uint16_t count_possible_positions = 0;
+    for (uint8_t y = 0; y < BOARD_HEIGHT; y++)
+        for (uint8_t x = 0; x < BOARD_WIDTH; x++)
+            if (board[y][x] == EMPTY)
+                possble_positions[count_possible_positions++] = (PosT) {
+                    .x = x,
+                    .y = y,
+                };
+
+    SetBoardAndUpdateDisplayBuffer(board, possble_positions[rand() % count_possible_positions], FOOD);
+}
+
+static bool CheckGameWin(const SnakeT* const Snake)
+{
+    // SnakeT.body has array size equal to board size. if snake size equals to board size, game is won
+    return Snake->length == sizeof(Snake->body) / sizeof(Snake->body[0]);
+}
+
+static void GameOver(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
+{
+    InitializeGame(board, Snake);
+}
+
+static void MoveSnake(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake, const DirectionE requested_direction)
+{
+    // update snake direction
+    switch (requested_direction) {
     case UP:
         if (Snake->direction != DOWN)
             Snake->direction = requested_direction;
@@ -193,15 +197,14 @@ static void MoveSnake(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT *const Sna
             Snake->direction = requested_direction;
         break;
     default:
-        assert(false);
+        // invalid input, noop
         break;
     }
 
+    // process the movement
     const PosT next_pos = GetNextPos(GetSnakeHeadPos(Snake), Snake->direction);
     const BoardE next_block = GetBoardEnum(board, next_pos);
-
-    switch (next_block)
-    {
+    switch (next_block) {
     case SNAKE:
         if (IsPosEqual(next_pos, GetSnakeTailPos(Snake)))
             MoveSnakeWithoutGrow(board, Snake, next_pos);
@@ -209,23 +212,51 @@ static void MoveSnake(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT *const Sna
             GameOver(board, Snake);
         break;
     case FOOD:
-        if (MoveSnakeWithGrowAndPlaceNewFood(board, Snake, next_pos))
-        {
-            printf("\nYou Won The Snake!\n");
-            exit(0);
-        }
+        MoveSnakeWithGrow(board, Snake, next_pos);
+        if (CheckGameWin(Snake))
+            GameOver(board, Snake);
+        else
+            PlaceNewFood(board);
         break;
     case EMPTY:
         MoveSnakeWithoutGrow(board, Snake, next_pos);
         break;
     default:
+        // this means corrupt memory
         assert(false);
         break;
     }
 }
 
-// waits maximum 60 frames
-void waitFrames(unsigned long frames_to_wait)
+/* ---- Input ---- */
+
+void IterateGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
+{
+    char pressed_key = getch();
+    DirectionE direction_request;
+    switch (pressed_key) {
+    case 'w':
+        direction_request = UP;
+        break;
+    case 'd':
+        direction_request = RIGHT;
+        break;
+    case 's':
+        direction_request = DOWN;
+        break;
+    case 'a':
+        direction_request = LEFT;
+        break;
+    default:
+        direction_request = INVALID;
+        break;
+    }
+    MoveSnake(board, Snake, direction_request);
+}
+
+/* ---- Draw ---- */
+
+void WaitFrames(unsigned long frames_to_wait)
 {
     if (frames_to_wait > 60)
         frames_to_wait = 60;
@@ -242,34 +273,29 @@ void waitFrames(unsigned long frames_to_wait)
         ;
 }
 
-static void PrintBoard(const BoardE board[BOARD_HEIGHT][BOARD_WIDTH])
-{
-    printf("\n");
-    for (size_t y = 0; y < BOARD_HEIGHT; y++)
-    {
-        for (size_t x = 0; x < BOARD_WIDTH; x++)
-        {
-            printf("%c ", board[y][x]);
-        }
-        printf("\n");
-    }
-}
-
-void snakeIteration(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT *const Snake)
-{
-    MoveSnake(board, Snake, RIGHT);
-    PrintBoard(board);
-    waitFrames(20);
-}
+/* ---- Main ---- */
 
 int main(void)
 {
+    // init display & input
+    initscr(); // start curses
+    curs_set(0); // remove cursor
+    noecho(); // inhibit pressed keys showing on screen
+    nodelay(stdscr, TRUE); // do not wait for input
+
+    // init game
     BoardE board[BOARD_HEIGHT][BOARD_WIDTH];
     SnakeT Snake;
-    Initialize(board, &Snake);
-    PrintBoard(board);
-    while (true)
-        snakeIteration(board, &Snake);
+    InitializeGame(board, &Snake);
 
+    // run game
+    while (true) {
+        IterateGame(board, &Snake);
+        refresh(); // draw to screen
+        WaitFrames(20); // limit frames
+    }
+
+    // uninit display
+    endwin(); // stop curses
     return 0;
 }
