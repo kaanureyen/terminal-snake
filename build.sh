@@ -1,5 +1,7 @@
-if [ build ]; then
-echo "./build/ found"
+if [ -d build ]; then
+    rm -r ./build
+    mkdir build
+    echo "./build/ found"
 else
     mkdir build
     echo "./build/ created"
