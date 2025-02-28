@@ -240,15 +240,19 @@ void IterateGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
 
     DirectionE direction_request;
     switch (last_valid_input) {
+    case 'W':
     case 'w':
         direction_request = UP;
         break;
+    case 'D':
     case 'd':
         direction_request = RIGHT;
         break;
+    case 'S':
     case 's':
         direction_request = DOWN;
         break;
+    case 'A':
     case 'a':
         direction_request = LEFT;
         break;
