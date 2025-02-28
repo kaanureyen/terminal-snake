@@ -1,4 +1,9 @@
+#if defined(_WIN32) || defined(WIN32)
+#include "ncurses/ncurses.h"
+#else
 #include "ncurses.h"
+#endif
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
