@@ -154,8 +154,8 @@ static void PlaceNewFood(BoardE board[BOARD_HEIGHT][BOARD_WIDTH])
 {
     PosT possble_positions[BOARD_HEIGHT * BOARD_WIDTH];
     uint16_t count_possible_positions = 0;
-    for (uint8_t y = 0; y < BOARD_HEIGHT; y++)
-        for (uint8_t x = 0; x < BOARD_WIDTH; x++)
+    for (size_t y = 0; y < BOARD_HEIGHT; y++)
+        for (size_t x = 0; x < BOARD_WIDTH; x++)
             if (board[y][x] == EMPTY)
                 possble_positions[count_possible_positions++] = (PosT) {
                     .x = x,
