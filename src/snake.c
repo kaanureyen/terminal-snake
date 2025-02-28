@@ -17,10 +17,7 @@ typedef struct {
 
 static bool IsPosEqual(const PosT pos1, const PosT pos2)
 {
-    if (pos1.x == pos2.x && pos1.y == pos2.y)
-        return true;
-    else
-        return false;
+    return pos1.x == pos2.x && pos1.y == pos2.y;
 }
 
 typedef enum {
@@ -238,6 +235,7 @@ void IterateGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
     while (ERR != (pressed_key = getch()))
         last_valid_input = pressed_key;
 
+    // update direction_request based on key input
     DirectionE direction_request;
     switch (last_valid_input) {
     case 'W':
@@ -260,6 +258,8 @@ void IterateGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
         direction_request = INVALID;
         break;
     }
+
+    // move it!
     MoveSnake(board, Snake, direction_request);
 }
 
@@ -267,9 +267,11 @@ void IterateGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
 
 void WaitFrames(uint32_t frames_to_wait)
 {
+    // saturate
     if (frames_to_wait > 60)
         frames_to_wait = 60;
 
+    // calculate time to wait
     const uint32_t frame_rate = 60;
     const uint32_t ns_in_s = 1000000000;
     const uint32_t ns_to_wait = ns_in_s / frame_rate * frames_to_wait;
@@ -277,6 +279,8 @@ void WaitFrames(uint32_t frames_to_wait)
         .tv_sec = ns_to_wait / ns_in_s,
         .tv_nsec = ns_to_wait % ns_in_s,
     };
+
+    // wait it
     struct timespec RemainingTime = FrameTime;
     while (nanosleep(&RemainingTime, &RemainingTime))
         ;
