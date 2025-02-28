@@ -83,7 +83,7 @@ typedef enum {
 static void SetBoardAndUpdateDisplayBuffer(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], const PosT pos, const BoardE state_to_write)
 {
     board[pos.y][pos.x] = state_to_write;
-    mvaddch(pos.y, pos.x, state_to_write);
+    (void)mvaddch(pos.y, pos.x, state_to_write);
 }
 
 static BoardE GetBoardEnum(const BoardE board[BOARD_HEIGHT][BOARD_WIDTH], const PosT pos)
@@ -139,7 +139,7 @@ static void MoveSnakeWithoutGrow(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT
     SetBoardAndUpdateDisplayBuffer(board, PosNewHead, SNAKE);
 
     // update snake body positions
-    for (size_t i = 0; i < Snake->length - 1; i++)
+    for (size_t i = 0; i < (size_t)(Snake->length - 1); i++)
         Snake->body[i] = Snake->body[i + 1];
     Snake->body[Snake->length - 1] = PosNewHead;
 }
@@ -232,7 +232,7 @@ static void MoveSnake(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Sna
 
 void IterateGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
 {
-    char pressed_key = getch();
+    int pressed_key = getch();
     DirectionE direction_request;
     switch (pressed_key) {
     case 'w':
@@ -256,7 +256,7 @@ void IterateGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
 
 /* ---- Draw ---- */
 
-void WaitFrames(unsigned long frames_to_wait)
+void WaitFrames(uint32_t frames_to_wait)
 {
     if (frames_to_wait > 60)
         frames_to_wait = 60;
@@ -278,10 +278,10 @@ void WaitFrames(unsigned long frames_to_wait)
 int main(void)
 {
     // init display & input
-    initscr(); // start curses
-    curs_set(0); // remove cursor
-    noecho(); // inhibit pressed keys showing on screen
-    nodelay(stdscr, TRUE); // do not wait for input
+    (void)initscr(); // start curses
+    (void)curs_set(0); // remove cursor
+    (void)noecho(); // inhibit pressed keys showing on screen
+    (void)nodelay(stdscr, TRUE); // do not wait for input
 
     // init game
     BoardE board[BOARD_HEIGHT][BOARD_WIDTH];
@@ -291,11 +291,11 @@ int main(void)
     // run game
     while (true) {
         IterateGame(board, &Snake);
-        refresh(); // draw to screen
-        WaitFrames(20); // limit frames
+        (void)refresh(); // draw to screen
+        WaitFrames(10); // limit frames
     }
 
     // uninit display
-    endwin(); // stop curses
+    (void)endwin(); // stop curses
     return 0;
 }
