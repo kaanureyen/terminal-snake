@@ -159,6 +159,7 @@ static void PlaceNewFood(BoardE board[BOARD_HEIGHT][BOARD_WIDTH])
                     .y = y,
                 };
 
+    assert(count_possible_positions >= 1);
     SetBoardAndUpdateDisplayBuffer(board, possble_positions[rand() % count_possible_positions], FOOD);
 }
 
