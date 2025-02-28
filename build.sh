@@ -7,7 +7,7 @@ echo "./build/ is being created"
 mkdir build
 
 echo "Compiling ./src/snake.c to ./build/snake"
-clang -DNDEBUG ./src/snake.c -o ./build/snake -O3 -lncurses -DNCURSES_STATIC -Wall -Wpedantic -Wextra
+clang ./src/snake.c -o ./build/snake -lncurses -DNCURSES_STATIC -Wall -Wpedantic -Wextra -O3 -DNDEBUG
 
 echo "Running ./build/snake"
 ./build/snake
