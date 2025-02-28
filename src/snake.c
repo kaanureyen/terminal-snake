@@ -232,9 +232,14 @@ static void MoveSnake(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Sna
 
 void IterateGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
 {
-    int pressed_key = getch();
+    // consume key buffer & get the last valid input
+    int pressed_key;
+    int last_valid_input;
+    while (ERR != (pressed_key = getch()))
+        last_valid_input = pressed_key;
+
     DirectionE direction_request;
-    switch (pressed_key) {
+    switch (last_valid_input) {
     case 'w':
         direction_request = UP;
         break;
