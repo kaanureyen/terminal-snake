@@ -233,8 +233,8 @@ static void MoveSnake(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Sna
 void IterateGame(BoardE board[BOARD_HEIGHT][BOARD_WIDTH], SnakeT* const Snake)
 {
     // consume key buffer & get the last valid input
-    int pressed_key;
     int last_valid_input = ' ';
+    int pressed_key;
     while (ERR != (pressed_key = getch()))
         last_valid_input = pressed_key;
 
