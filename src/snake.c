@@ -1,5 +1,5 @@
+#include "ncurses.h"
 #include <assert.h>
-#include <curses.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
