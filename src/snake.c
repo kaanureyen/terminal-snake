@@ -70,7 +70,7 @@ void SetBoardAndUpdateDisplayBuffer(board_t board[BOARD_HEIGHT][BOARD_WIDTH], co
     (void)mvaddch(Pos.y, Pos.x, state_to_write);
 }
 
-board_t GetBoardState(const board_t board[BOARD_HEIGHT][BOARD_WIDTH], const Pos_t Pos)
+board_t GetBoardState(board_t board[BOARD_HEIGHT][BOARD_WIDTH], const Pos_t Pos)
 {
     return board[Pos.y][Pos.x];
 }
